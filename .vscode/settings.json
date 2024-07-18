@@ -1,0 +1,4 @@
+{
+    "go.buildTags": "integration",
+    "makefile.makefilePath": "/Users/sajidsamsad/Documents/playground/payment-gateway-challenge-go/Makefile",
+}
