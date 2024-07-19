@@ -23,7 +23,8 @@ type Api struct {
 func New() *Api {
 	a := &Api{}
 	a.paymentsRepo = repository.NewPaymentsRepository()
-	a.bankClient = restclient.NewBankClient()
+	client := http.DefaultClient
+	a.bankClient = restclient.NewBankClient(client)
 	a.setupRouter()
 
 	return a

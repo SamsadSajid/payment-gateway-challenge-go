@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/go-chi/render"
@@ -33,13 +34,14 @@ func (req *PostPaymentRequest) Bind(r *http.Request) error {
 		return fmt.Errorf("card number must contain only numberic characters")
 	}
 
-	if req.isInvalidExpirationTime() {
+	if isInvalidExpirationTime(req.ExpiryMonth, req.ExpiryYear) {
 		return fmt.Errorf("please provide a valid expiration date")
 	}
 
 	// TODO also validates on currency code - waiting on recruiter
-	if len(req.Currency) < 3 || len(req.Currency) > 3 {
-		return fmt.Errorf("currency code must be 3 characters long")
+	req.Currency = strings.ToUpper(req.Currency)
+	if isInValidCurrencyFormat(req.Currency) {
+		return fmt.Errorf("currency code must be ISO formatted")
 	}
 
 	if len(req.Cvv) < 3 || len(req.Cvv) > 4 {
@@ -48,14 +50,22 @@ func (req *PostPaymentRequest) Bind(r *http.Request) error {
 	if !re.MatchString(req.Cvv) {
 		return fmt.Errorf("CVV must contain only numberic characters")
 	}
+	// for Amex, CVV must be four character long
+	if req.CardNumber[0] == '3' && len(req.Cvv) != 4 {
+		return fmt.Errorf("invalid CVV")
+	}
 
 	return nil
 }
 
-func (req *PostPaymentRequest) isInvalidExpirationTime() bool {
+func isInvalidExpirationTime(expiryMonth int, expiryYear int) bool {
 	currYear, currMonth, _ := time.Now().Date()
 
-	return (req.ExpiryYear < currYear) || (currYear == req.ExpiryYear && time.Month(req.ExpiryMonth) < currMonth)
+	return (expiryYear < currYear) || (currYear == expiryYear && time.Month(expiryMonth) < currMonth)
+}
+
+func isInValidCurrencyFormat(currency string) bool {
+	return len(currency) < 3 || len(currency) > 3 || currency != "GBP" && currency != "USD" && currency != "EUR"
 }
 
 type omit *struct{}

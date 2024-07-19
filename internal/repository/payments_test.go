@@ -1,10 +1,8 @@
-//go:build !integration
-// +build !integration
-
 package repository
 
 import (
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -57,6 +55,7 @@ func TestPaymentsRepository_AddPayment(t *testing.T) {
 
 			ps := &PaymentsRepository{
 				payments: tt.paymentsRepo(),
+				l:        &sync.RWMutex{},
 			}
 			if err := ps.AddPayment(tt.payment); (err != nil) != tt.wantErr {
 				t.Errorf("PaymentsRepository.AddPayment() error = %v, wantErr %v", err, tt.wantErr)
@@ -111,6 +110,7 @@ func TestPaymentsRepository_GetPayment(t *testing.T) {
 
 			ps := &PaymentsRepository{
 				payments: tt.paymentsRepo(),
+				l:        &sync.RWMutex{},
 			}
 			if got := ps.GetPayment(tt.id); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("PaymentsRepository.GetPayment() = %v, want %v", got, tt.want)
@@ -192,7 +192,7 @@ func TestNewPayment(t *testing.T) {
 
 			got := NewPayment(tt.args.req, tt.args.bankResp)
 			if diff := cmp.Diff(got, tt.want, cmpopts.IgnoreFields(models.PaymentRecord{}, "Id")); diff != "" {
-				t.Errorf("MakeGatewayInfo() mismatch (-want +got):\n%s", diff)
+				t.Errorf("NewPayment() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

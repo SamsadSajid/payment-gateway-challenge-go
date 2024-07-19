@@ -78,16 +78,16 @@ func TestBank_RequestPaymentCapture(t *testing.T) {
 			t.Parallel()
 
 			b := &Bank{
-				client: *http.DefaultClient,
+				client: http.DefaultClient,
 			}
 			got, err := b.RequestPaymentCapture(tt.bankReq)
 			if err != nil && tt.wantErr != nil {
 				if diff := cmp.Diff(&err, &tt.wantErr, cmpopts.IgnoreFields(models.BankErrorResponse{}, "Error")); diff != "" {
-					t.Fatalf("Bank.RequestPaymentCapture() error mismatch (-want +got):\n%s", diff)
+					t.Errorf("Bank.RequestPaymentCapture() error mismatch (-want +got):\n%s", diff)
 				}
 			}
 			if diff := cmp.Diff(got, tt.want); diff != "" {
-				t.Fatalf("Bank.RequestPaymentCapture() mismatch (-want +got):\n%s", diff)
+				t.Errorf("Bank.RequestPaymentCapture() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

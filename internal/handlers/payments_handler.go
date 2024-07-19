@@ -49,7 +49,11 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		req := &models.PostPaymentRequest{}
 		if err := render.Bind(r, req); err != nil {
-			render.Render(w, r, errInvalidRequest(*req, err))
+			render.Render(w, r, &models.ErrResponse{
+				HTTPStatusCode: http.StatusBadRequest,
+				StatusText:     fmt.Sprintf("Payment request rejected! Error: %v", err.Error()),
+				AppCode:        models.ErrRequestRejected,
+			})
 			return
 		}
 
@@ -61,7 +65,7 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 		bankResp, err := requestBank(req, ph.bankClient)
 		if err != nil {
 			render.Render(w, r, &models.ErrResponse{
-				HTTPStatusCode: http.StatusInternalServerError,
+				HTTPStatusCode: http.StatusBadRequest,
 				StatusText:     "An error occurred. Please contact customer support and provide the app_code",
 				AppCode:        err.Appcode,
 			})
@@ -123,13 +127,5 @@ func errInvalidRequest(req models.PostPaymentRequest, err error) render.Renderer
 	return &models.PostPaymentResponse{
 		PaymentRecord: paymentRecord,
 		ErrorMsg:      err.Error(),
-	}
-}
-
-func ErrOp(err *models.BankErrorResponse) render.Renderer {
-	return &models.ErrResponse{
-		HTTPStatusCode: http.StatusInternalServerError,
-		StatusText:     "An error occurred. Please contact customer support and provide the app_code",
-		AppCode:        int64(err.Appcode),
 	}
 }

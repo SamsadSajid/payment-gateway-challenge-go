@@ -11,13 +11,17 @@ import (
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 )
 
-type Bank struct {
-	client http.Client
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
 }
 
-func NewBankClient() *Bank {
+type Bank struct {
+	client HTTPClient
+}
+
+func NewBankClient(c HTTPClient) *Bank {
 	return &Bank{
-		client: http.Client{},
+		client: c,
 	}
 }
 

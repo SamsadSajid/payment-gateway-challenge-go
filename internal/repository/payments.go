@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/google/uuid"
 
@@ -10,15 +11,19 @@ import (
 
 type PaymentsRepository struct {
 	payments map[string]models.PaymentRecord
+	l        *sync.RWMutex
 }
 
 func NewPaymentsRepository() *PaymentsRepository {
 	return &PaymentsRepository{
 		payments: make(map[string]models.PaymentRecord),
+		l:        &sync.RWMutex{},
 	}
 }
 
 func (ps *PaymentsRepository) GetPayment(id string) *models.PaymentRecord {
+	ps.l.RLock()
+	defer ps.l.RUnlock()
 	payment, ok := ps.payments[id]
 	if !ok {
 		return nil
@@ -27,6 +32,8 @@ func (ps *PaymentsRepository) GetPayment(id string) *models.PaymentRecord {
 }
 
 func (ps *PaymentsRepository) AddPayment(payment models.PaymentRecord) error {
+	ps.l.Lock()
+	defer ps.l.Unlock()
 	if _, ok := ps.payments[payment.Id]; ok {
 		return fmt.Errorf("payment record already exists for payment id %s", payment.Id)
 	}

@@ -9,7 +9,7 @@ import (
 // ErrResponse type is what we send back to the merchant upon any error from their action
 type ErrResponse struct {
 	HTTPStatusCode int    `json:"status_code"`        // http response status code
-	StatusText     string `json:"status"`             // user-level status message
+	StatusText     string `json:"status_text"`        // user-level status message
 	AppCode        int64  `json:"app_code,omitempty"` // application-specific error code
 }
 

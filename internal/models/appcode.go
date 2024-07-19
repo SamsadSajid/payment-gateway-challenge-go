@@ -8,4 +8,5 @@ const (
 	ErrDatastorePaymentCreation      = 6
 	ErrBankRequest                   = 7
 	ErrBankResponseStatusCodeNon200  = 8
+	ErrRequestRejected               = 9
 )
