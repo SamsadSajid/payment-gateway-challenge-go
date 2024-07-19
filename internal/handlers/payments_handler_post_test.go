@@ -197,3 +197,82 @@ func TestPostPaymentHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestPostPaymentHandler_RetryBankExponentially(t *testing.T) {
+	t.Parallel()
+
+	ps := repository.NewPaymentsRepository()
+	bc := mockBankClient{}
+	c := restclient.NewBankClient(&bc)
+
+	payments := NewPaymentsHandler(ps, c)
+
+	router := chi.NewRouter()
+	router.Post("/api/payments", payments.PostHandler())
+
+	httpServer := &http.Server{
+		Addr:    ":8091",
+		Handler: router,
+	}
+
+	go func() error {
+		return httpServer.ListenAndServe()
+	}()
+
+	tests := []struct {
+		name           string
+		payload        *strings.Reader
+		wantStatusCode int
+		want           string
+	}{
+		{
+			name: "return HTTP 503 because bank server down after retry is exhausted",
+			payload: strings.NewReader(`{
+				"card_number": "2222405343248877",
+				"expiry_month": 4, 
+				"expiry_year": 2025, 
+				"currency": "GBP", 
+				"amount": 100, 
+				"cvv": "123"
+			}`),
+			wantStatusCode: http.StatusServiceUnavailable,
+			want:           "\"status_code\":503,\"status_text\":\"An error occurred. Please contact customer support and provide the app_code\",\"app_code\":8",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			r, err := http.NewRequest("POST", "/api/payments", tt.payload)
+			r.Header.Add("Content-Type", "application/json")
+			assert.Nil(t, err)
+			w := httptest.NewRecorder()
+
+			router.ServeHTTP(w, r)
+
+			assert.NotNil(t, w.Body)
+
+			if tt.wantStatusCode != w.Code {
+				t.Errorf("handler returned wrong status code: got %d want %d",
+					w.Code, tt.wantStatusCode)
+			}
+			assert.Contains(t, w.Body.String(), tt.want)
+
+			// retry will happen at least 3 times
+			assert.GreaterOrEqual(t, bc.cnt, 3)
+		})
+	}
+}
+
+type mockBankClient struct {
+	cnt int
+}
+
+func (m *mockBankClient) Do(r *http.Request) (*http.Response, error) {
+	m.cnt++
+	return &http.Response{
+		StatusCode: http.StatusServiceUnavailable,
+	}, nil
+}

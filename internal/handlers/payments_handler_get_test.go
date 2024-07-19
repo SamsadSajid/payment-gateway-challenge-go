@@ -19,7 +19,7 @@ import (
 func TestGetPaymentHandler(t *testing.T) {
 	ps := repository.NewPaymentsRepository()
 	c := restclient.NewBankClient(http.DefaultClient)
-	addSeedData(ps, 1)
+	addSeedData(t, ps, 1)
 
 	payments := NewPaymentsHandler(ps, c)
 
@@ -68,7 +68,9 @@ func TestGetPaymentHandler(t *testing.T) {
 	})
 }
 
-func addSeedData(ps *repository.PaymentsRepository, seed int) {
+func addSeedData(t *testing.T, ps *repository.PaymentsRepository, seed int) {
+	t.Helper()
+
 	for i := 0; i < seed; i++ {
 		payment := models.PaymentRecord{
 			Id:                 "test-id",
@@ -79,6 +81,7 @@ func addSeedData(ps *repository.PaymentsRepository, seed int) {
 			Currency:           "GBP",
 			Amount:             100,
 		}
-		ps.AddPayment(payment)
+		err := ps.AddPayment(payment)
+		assert.Nil(t, err)
 	}
 }

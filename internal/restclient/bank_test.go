@@ -7,9 +7,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 )
 
 func TestBank_RequestPaymentCapture(t *testing.T) {

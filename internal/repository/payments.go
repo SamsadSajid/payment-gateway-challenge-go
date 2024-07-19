@@ -54,10 +54,14 @@ func NewPayment(req *models.PostPaymentRequest, bankResp *models.BankResponse) m
 		Cvv:                req.Cvv,
 	}
 
-	if bankResp.Authorized {
-		paymentRecord.PaymentStatus = models.PaymentStatus(models.Authorized)
-	} else {
-		paymentRecord.PaymentStatus = models.PaymentStatus(models.Declined)
+	if bankResp != nil {
+		paymentRecord.BankAuthorizationCode = bankResp.AuthorizationCode
+
+		if bankResp.Authorized {
+			paymentRecord.PaymentStatus = models.PaymentStatus(models.Authorized)
+		} else {
+			paymentRecord.PaymentStatus = models.PaymentStatus(models.Declined)
+		}
 	}
 
 	return paymentRecord

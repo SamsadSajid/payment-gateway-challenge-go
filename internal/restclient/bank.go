@@ -7,6 +7,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
+
+	"github.com/cenkalti/backoff/v4"
 
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 )
@@ -51,19 +54,19 @@ func (b *Bank) RequestPaymentCapture(bankReq models.BankRequest) (*models.BankRe
 	}
 
 	resp, err := b.Do(r)
-	if err != nil {
-		return nil, &models.BankErrorResponse{
-			Appcode:      models.ErrBankRequest,
-			StatusCode:   http.StatusInternalServerError,
-			ErrorMessage: err.Error(),
-			Error:        err,
-		}
-	}
-	if resp.StatusCode != http.StatusOK {
+	if resp != nil && resp.StatusCode != http.StatusOK {
 		err = fmt.Errorf("Bank returned HTTP %d code", resp.StatusCode)
 		return nil, &models.BankErrorResponse{
 			Appcode:      models.ErrBankResponseStatusCodeNon200,
 			StatusCode:   resp.StatusCode,
+			ErrorMessage: err.Error(),
+			Error:        err,
+		}
+	}
+	if err != nil {
+		return nil, &models.BankErrorResponse{
+			Appcode:      models.ErrBankRequest,
+			StatusCode:   http.StatusInternalServerError,
 			ErrorMessage: err.Error(),
 			Error:        err,
 		}
@@ -102,17 +105,48 @@ func (b *Bank) RequestPaymentCapture(bankReq models.BankRequest) (*models.BankRe
 }
 
 func (b *Bank) Do(req *http.Request) (*http.Response, error) {
-	resp, err := b.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error while making POST request to bank. Error: %w", err)
+	var resp *http.Response
+	var err error
+
+	permanentErr := backoff.Permanent(fmt.Errorf("error while making POST request to bank. Error: %w", err))
+
+	expBackOffOpts := []backoff.ExponentialBackOffOpts{
+		backoff.WithInitialInterval(0 * time.Millisecond),
+		backoff.WithMultiplier(2),
+		backoff.WithMaxElapsedTime(3 * time.Second),
 	}
 
-	// TODO: need to change this logic and implement exponential retry mechanism
-	// If bank does not return http.StatusOK
-	// what should I send to the merchant?
+	expBackOff := backoff.NewExponentialBackOff(expBackOffOpts...)
+
+	operation := func() error {
+		resp, err = b.client.Do(req)
+		if err != nil {
+			return permanentErr
+		}
+
+		// TODO: need to change this logic and implement exponential retry mechanism
+		// If bank does not return http.StatusOK
+		// what should I send to the merchant?
+		if resp.StatusCode == http.StatusServiceUnavailable || resp.StatusCode == http.StatusTooManyRequests {
+			return fmt.Errorf("Bank returned HTTP %d code", resp.StatusCode)
+		}
+		return nil
+	}
+
+	err = backoff.Retry(operation, expBackOff)
+	return resp, err
+
+	// resp, err := b.client.Do(req)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error while making POST request to bank. Error: %w", err)
+	// }
+
+	// // TODO: need to change this logic and implement exponential retry mechanism
+	// // If bank does not return http.StatusOK
+	// // what should I send to the merchant?
 	// if resp.StatusCode != http.StatusOK {
 	// 	return resp, fmt.Errorf("Bank returned HTTP %d code", resp.StatusCode)
 	// }
 
-	return resp, nil
+	// return resp, nil
 }

@@ -62,15 +62,7 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 		// - 5XX: we should retry with exponential backoff;
 		//		  if retry has exhausted return a retriable
 		//		  error code to the merchant
-		bankResp, err := requestBank(req, ph.bankClient)
-		if err != nil {
-			render.Render(w, r, &models.ErrResponse{
-				HTTPStatusCode: http.StatusBadRequest,
-				StatusText:     "An error occurred. Please contact customer support and provide the app_code",
-				AppCode:        err.Appcode,
-			})
-			return
-		}
+		bankResp, bankErr := requestBank(req, ph.bankClient)
 
 		paymentRecord := repository.NewPayment(req, bankResp)
 		if err := ph.storage.AddPayment(paymentRecord); err != nil {
@@ -78,6 +70,15 @@ func (ph *PaymentsHandler) PostHandler() http.HandlerFunc {
 				HTTPStatusCode: http.StatusInternalServerError,
 				StatusText:     err.Error(),
 				AppCode:        models.ErrDatastorePaymentCreation,
+			})
+			return
+		}
+
+		if bankErr != nil {
+			render.Render(w, r, &models.ErrResponse{
+				HTTPStatusCode: bankErr.StatusCode,
+				StatusText:     "An error occurred. Please contact customer support and provide the app_code",
+				AppCode:        bankErr.Appcode,
 			})
 			return
 		}
@@ -112,20 +113,4 @@ func formatExpiryDateForBankRequest(req *models.PostPaymentRequest) string {
 	expiryYear := fmt.Sprint(req.ExpiryYear)
 
 	return fmt.Sprintf("%s/%s", expiryMonth, expiryYear)
-}
-
-func errInvalidRequest(req models.PostPaymentRequest, err error) render.Renderer {
-	paymentRecord := &models.PaymentRecord{
-		Id:                 "", // TODO: waiting on recruiter; should it be an empty string
-		CardNumberLastFour: req.CardNumber[len(req.CardNumber)-4:],
-		ExpiryMonth:        req.ExpiryMonth,
-		ExpiryYear:         req.ExpiryYear,
-		Amount:             req.Amount,
-		Cvv:                req.Cvv,
-		PaymentStatus:      models.PaymentStatus(models.Rejected),
-	}
-	return &models.PostPaymentResponse{
-		PaymentRecord: paymentRecord,
-		ErrorMsg:      err.Error(),
-	}
 }
