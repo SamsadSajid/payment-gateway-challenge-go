@@ -78,6 +78,7 @@ type PostPaymentResponse struct {
 	// we don't want the following two fields to send to the merchant
 	Cvv                   omit `json:"cvv,omitempty"`
 	BankAuthorizationCode omit `json:"bank_authorization_code,omitempty"`
+	Timestamp             omit `json:"time_stamp"` // DB record time does not need to be sent to the merchant
 }
 
 // Render returns the PostPaymentResponse to the client
@@ -129,4 +130,5 @@ type PaymentRecord struct {
 	Cvv                   string        `json:"cvv"`
 	PaymentStatus         PaymentStatus `json:"payment_status"`
 	BankAuthorizationCode string        `json:"bank_authorization_code"`
+	Timestamp             time.Time     `json:"time_stamp"`
 }

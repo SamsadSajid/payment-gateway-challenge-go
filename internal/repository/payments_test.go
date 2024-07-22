@@ -193,7 +193,7 @@ func TestNewPayment(t *testing.T) {
 			t.Parallel()
 
 			got := NewPayment(tt.args.req, tt.args.bankResp)
-			if diff := cmp.Diff(got, tt.want, cmpopts.IgnoreFields(models.PaymentRecord{}, "Id")); diff != "" {
+			if diff := cmp.Diff(got, tt.want, cmpopts.IgnoreFields(models.PaymentRecord{}, "Id", "Timestamp")); diff != "" {
 				t.Errorf("NewPayment() mismatch (-want +got):\n%s", diff)
 			}
 		})

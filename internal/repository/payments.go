@@ -3,6 +3,7 @@ package repository
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -52,6 +53,7 @@ func NewPayment(req *models.PostPaymentRequest, bankResp *models.BankResponse) m
 		Currency:           req.Currency,
 		Amount:             req.Amount,
 		Cvv:                req.Cvv,
+		Timestamp:          time.Now(),
 	}
 
 	if bankResp != nil {

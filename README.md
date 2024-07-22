@@ -1,3 +1,18 @@
+# payment-gateway-challenge-go
+
+A Golang based payment gateway that merchant can use to capture their payment requests. The gateway validates requests and send it to the acquired bank and return the response to the merchant.
+
+# Test
+
+- Run unit tests: `make test`
+- Run integration tests: `make test-integration`.
+
+The integration test requires the bank docker container in running state. However, you do not need to run any command to launch the container. The `make` command will launch the container. If the container is already running, the above command will just run the integration tests.
+
+All tests are run in parallel mode to reduce test running time.
+
+Documentation can be found in [architecture decisions](docs/architecture/decisions/0002-implement-payment-gateway-api-interface.md) file
+
 # Instructions for candidates
 
 This is the Go version of the Payment Gateway challenge. If you haven't already read the [README.md](https://github.com/cko-recruitment/.github/tree/beta) in the root of this organisation, please do so now. 

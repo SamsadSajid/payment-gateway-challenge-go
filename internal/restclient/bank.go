@@ -124,9 +124,6 @@ func (b *Bank) Do(req *http.Request) (*http.Response, error) {
 			return permanentErr
 		}
 
-		// TODO: need to change this logic and implement exponential retry mechanism
-		// If bank does not return http.StatusOK
-		// what should I send to the merchant?
 		if resp.StatusCode == http.StatusServiceUnavailable || resp.StatusCode == http.StatusTooManyRequests {
 			return fmt.Errorf("Bank returned HTTP %d code", resp.StatusCode)
 		}
@@ -135,18 +132,4 @@ func (b *Bank) Do(req *http.Request) (*http.Response, error) {
 
 	err = backoff.Retry(operation, expBackOff)
 	return resp, err
-
-	// resp, err := b.client.Do(req)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("error while making POST request to bank. Error: %w", err)
-	// }
-
-	// // TODO: need to change this logic and implement exponential retry mechanism
-	// // If bank does not return http.StatusOK
-	// // what should I send to the merchant?
-	// if resp.StatusCode != http.StatusOK {
-	// 	return resp, fmt.Errorf("Bank returned HTTP %d code", resp.StatusCode)
-	// }
-
-	// return resp, nil
 }
