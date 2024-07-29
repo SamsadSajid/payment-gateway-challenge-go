@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package handlers
 
 import (
@@ -5,26 +8,20 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/models"
 	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/repository"
-	"github.com/go-chi/chi"
-	"github.com/stretchr/testify/assert"
+	"github.com/cko-recruitment/payment-gateway-challenge-go/internal/restclient"
 )
 
 func TestGetPaymentHandler(t *testing.T) {
-	payment := models.PostPaymentResponse{
-		Id:                 "test-id",
-		PaymentStatus:      "test-successful-status",
-		CardNumberLastFour: 1234,
-		ExpiryMonth:        10,
-		ExpiryYear:         2035,
-		Currency:           "GBP",
-		Amount:             100,
-	}
 	ps := repository.NewPaymentsRepository()
-	ps.AddPayment(payment)
+	c := restclient.NewBankClient(http.DefaultClient)
+	addSeedData(t, ps, 1)
 
-	payments := NewPaymentsHandler(ps)
+	payments := NewPaymentsHandler(ps, c)
 
 	r := chi.NewRouter()
 	r.Get("/api/payments/{id}", payments.GetHandler())
@@ -67,6 +64,24 @@ func TestGetPaymentHandler(t *testing.T) {
 
 		// Check the HTTP status code in the response
 
-		assert.Equal(t, w.Code, http.StatusNotFound)
+		assert.Equal(t, http.StatusNoContent, w.Code)
 	})
+}
+
+func addSeedData(t *testing.T, ps *repository.PaymentsRepository, seed int) {
+	t.Helper()
+
+	for i := 0; i < seed; i++ {
+		payment := models.PaymentRecord{
+			Id:                 "test-id",
+			PaymentStatus:      models.PaymentStatus(models.Authorized),
+			CardNumberLastFour: "1234",
+			ExpiryMonth:        10,
+			ExpiryYear:         2035,
+			Currency:           "GBP",
+			Amount:             100,
+		}
+		err := ps.AddPayment(payment)
+		assert.Nil(t, err)
+	}
 }
